@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HemoNet — Global AI Predictive Blood Network</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="topbar" role="banner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">H+</div>
+      <div>
+        <h1>HemoNet</h1>
+        <p class="subtitle">Global AI Predictive Blood Shortage &amp; Redistribution Network</p>
+      </div>
+    </div>
+
+    <div class="topbar-controls">
+      <div class="role-group" role="group" aria-label="View role">
+        <label for="role-select" class="sr-only">Role perspective</label>
+        <select id="role-select" aria-label="Switch perspective">
+          <option value="coordinator">Regional Coordinator</option>
+          <option value="hospital">Hospital Blood Bank</option>
+          <option value="logistics">Cold-Chain Logistics</option>
+          <option value="public">Everyone / Community Donor</option>
+        </select>
+      </div>
+
+      <button id="btn-connect-hospital" class="btn btn-primary" type="button">+ Connect Hospital</button>
+      <button id="btn-open-donor-dialog" class="btn btn-accent" type="button">Donor Motivation Dialog</button>
+      <button id="btn-toggle-text" class="btn btn-ghost" type="button" aria-pressed="false" title="Increase text size">A+</button>
+      <button id="btn-toggle-contrast" class="btn btn-ghost" type="button" aria-pressed="false" title="High contrast mode">Contrast</button>
+    </div>
+  </header>
+
+  <div id="urgent-banner" class="urgent-banner" role="status" aria-live="polite">
+    <span class="pulse-dot" aria-hidden="true"></span>
+    <span id="urgent-banner-text">Connecting to global HemoNet predictive telemetry...</span>
+  </div>
+
+  <main id="main-content" class="container">
+    <!-- KPI Strip -->
+    <section class="kpi-grid" aria-label="Network summary metrics">
+      <article class="kpi-card">
+        <span class="kpi-label">Connected Hospitals &amp; Banks</span>
+        <strong id="kpi-facilities" class="kpi-value">--</strong>
+        <span class="kpi-meta" id="kpi-regions">Across 8 global regions</span>
+      </article>
+      <article class="kpi-card kpi-alert">
+        <span class="kpi-label">Upcoming Shortage Alerts</span>
+        <strong id="kpi-alerts" class="kpi-value">--</strong>
+        <span class="kpi-meta" id="kpi-lead-time">Avg lead time gained: --h</span>
+      </article>
+      <article class="kpi-card kpi-good">
+        <span class="kpi-label">Units Matched Before Crisis</span>
+        <strong id="kpi-matched" class="kpi-value">--</strong>
+        <span class="kpi-meta" id="kpi-transfers">Min-Cost Flow optimal routes</span>
+      </article>
+      <article class="kpi-card">
+        <span class="kpi-label">AI Model Accuracy (Backtest)</span>
+        <strong id="kpi-recall" class="kpi-value">--</strong>
+        <span class="kpi-meta" id="kpi-mae">MAE: -- u/day</span>
+      </article>
+      <article class="kpi-card kpi-donor">
+        <span class="kpi-label">Community Donor Pledges</span>
+        <strong id="kpi-pledges" class="kpi-value">--</strong>
+        <span class="kpi-meta" id="kpi-lives">Up to -- lives protected</span>
+      </article>
+    </section>
+
+    <!-- Global Map + Continuous Donor Motivation Scheme Panel -->
+    <section class="split-hero">
+      <article class="panel map-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Geographical Network &amp; Blood Availability Map</h2>
+            <p class="panel-sub">Hospitals, blood hubs, WHO-verified doctors, medical colleges &amp; cold-chain routes</p>
+          </div>
+          <div class="map-controls">
+            <select id="map-blood-filter" aria-label="Filter map by blood group">
+              <option value="ALL">All Blood Groups</option>
+              <option value="O-">O- Availability</option>
+              <option value="O+">O+ Availability</option>
+              <option value="A-">A- Availability</option>
+              <option value="A+">A+ Availability</option>
+              <option value="B-">B- Availability</option>
+              <option value="B+">B+ Availability</option>
+              <option value="AB-">AB- Availability</option>
+              <option value="AB+">AB+ Availability</option>
+            </select>
+            <label class="toggle-chip"><input id="layer-doctors" type="checkbox" checked /> Doctors</label>
+            <label class="toggle-chip"><input id="layer-colleges" type="checkbox" checked /> Colleges</label>
+            <label class="toggle-chip"><input id="layer-mfgs" type="checkbox" checked /> Drug Mfg</label>
+          </div>
+          <div class="legend" aria-label="Map legend">
+            <span><i class="dot dot-safe"></i> Safe</span>
+            <span><i class="dot dot-warn"></i> Warning</span>
+            <span><i class="dot dot-crit"></i> Critical</span>
+            <span><i class="dot dot-bank"></i> Blood Hub</span>
+            <span><i class="dot dot-who"></i> WHO Doctor/College/Mfg</span>
+          </div>
+        </div>
+        <div class="map-wrap">
+          <svg id="world-map" viewBox="0 0 1000 480" role="img" aria-label="Global map of connected hospitals, blood banks, and cold-chain transfer routes"></svg>
+          <div id="map-tooltip" class="map-tooltip" hidden></div>
+        </div>
+      </article>
+
+      <!-- Continuously Running Donor Motivation Dialog (Always Visible) -->
+      <aside class="panel donor-panel" id="donor-dialog-panel" aria-label="Continuous Donor Motivation Scheme Dialog">
+        <div class="panel-header">
+          <div>
+            <span class="scheme-badge" id="scheme-badge">LIVE FORECAST TRIGGERED</span>
+            <h2 id="scheme-title">72-Hour Life-Bridge Scheme</h2>
+          </div>
+          <button id="btn-pause-scheme" class="btn btn-sm btn-ghost" type="button" aria-pressed="false">Pause Cycle</button>
+        </div>
+
+        <p id="scheme-tagline" class="scheme-tagline"></p>
+        <div class="scheme-fact" id="scheme-fact"></div>
+
+        <div class="urgent-chips" id="donor-urgent-chips" aria-label="Most needed blood types right now"></div>
+
+        <div class="dialog-feed" id="donor-dialog-stream" aria-live="polite"></div>
+
+        <div class="dialog-chat-box">
+          <div id="donor-chat-log" class="chat-log" aria-live="polite"></div>
+          <div id="donor-quick-replies" class="quick-replies"></div>
+          <form id="donor-chat-form" class="chat-form">
+            <label for="donor-chat-input" class="sr-only">Ask the Donor Companion</label>
+            <input id="donor-chat-input" type="text" placeholder="Ask about eligibility, comfort, or where help is needed..." />
+            <button class="btn btn-primary" type="submit">Ask</button>
+          </form>
+        </div>
+
+        <form id="pledge-form" class="pledge-form">
+          <h3>Quick 20-Second Donation Pledge</h3>
+          <div class="form-row">
+            <input id="pledge-name" type="text" placeholder="Your name" required />
+            <select id="pledge-blood" aria-label="Blood type">
+              <option value="O-">O- (Universal RBC)</option>
+              <option value="O+">O+</option>
+              <option value="A-">A-</option>
+              <option value="A+">A+</option>
+              <option value="B-">B-</option>
+              <option value="B+">B+</option>
+              <option value="AB-">AB-</option>
+              <option value="AB+">AB+ (Universal Plasma)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <select id="pledge-comp" aria-label="Component">
+              <option value="RBC">Whole Blood / RBC</option>
+              <option value="PLT">Platelets (5-day need)</option>
+              <option value="FFP">Plasma</option>
+            </select>
+            <input id="pledge-city" type="text" placeholder="City (e.g. New Delhi, New York)" required />
+          </div>
+          <div class="form-row">
+            <input id="pledge-team" type="text" placeholder="Optional Team / Campus Relay" />
+            <select id="pledge-window" aria-label="Preferred time window">
+              <option value="Within 24h">Within 24h</option>
+              <option value="Within 48h" selected>Within 48h</option>
+              <option value="This Weekend">This Weekend</option>
+            </select>
+          </div>
+          <button class="btn btn-accent btn-block" type="submit">Pledge &amp; Join Live Scheme</button>
+          <div id="pledge-status" class="form-status" role="status" aria-live="polite"></div>
+        </form>
+      </aside>
+    </section>
+
+    <!-- Navigation Tabs for Operations -->
+    <nav class="tabs" role="tablist" aria-label="Operational workspaces">
+      <button class="tab active" role="tab" aria-selected="true" data-tab="alerts">Shortage Alerts &amp; Prep</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="analytics">Real-Time Inventory &amp; Consumption</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="caretaker">Caretaker &amp; WHO Specialists</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="transfers">Redistribution Transfers</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="directory">Global Hospital Directory</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="simulator">What-If Surge &amp; Interop (FHIR / ISBT 128)</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="privacy">Federated Privacy &amp; Audit</button>
+    </nav>
+
+    <!-- Tab 1: Alerts & Preparedness -->
+    <section id="tab-alerts" class="tab-panel active">
+      <div class="toolbar">
+        <input id="alert-search" type="search" placeholder="Filter alerts by hospital, city, blood type..." aria-label="Filter shortage alerts" />
+        <select id="alert-severity" aria-label="Filter by severity">
+          <option value="ALL">All Severities</option>
+          <option value="CRITICAL">Critical Only</option>
+          <option value="WARNING">Warning Only</option>
+          <option value="WATCH">Watch Only</option>
+        </select>
+      </div>
+      <div id="alerts-list" class="cards-grid"></div>
+    </section>
+
+    <!-- Tab 1b: Real-Time Inventory & Historic Consumption Analytics -->
+    <section id="tab-analytics" class="tab-panel" hidden>
+      <div class="two-col" style="margin-bottom:16px">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Historic Blood Consumption vs. Collections (30 Days)</h2>
+              <p class="panel-sub" id="analytics-burn-summary">Analyzing global daily consumption and supply balance...</p>
+            </div>
+          </div>
+          <svg id="consumption-chart" viewBox="0 0 640 240" role="img" aria-label="30-day historic blood consumption versus collections chart" style="width:100%;height:auto;background:#08101e;border-radius:10px;border:1px solid var(--border)"></svg>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Real-Time Inventory Sync &amp; Top Consuming Hospitals</h2>
+              <p class="panel-sub">Update live units at any hospital to recompute forecasts &amp; routes immediately</p>
+            </div>
+          </div>
+          <form id="inv-sync-form" class="form-row" style="margin-bottom:12px">
+            <select id="sync-facility" aria-label="Facility"></select>
+            <select id="sync-comp" aria-label="Component">
+              <option value="RBC">RBC</option>
+              <option value="PLT">PLT</option>
+              <option value="FFP">FFP</option>
+              <option value="CRYO">CRYO</option>
+            </select>
+            <select id="sync-bt" aria-label="Blood type">
+              <option value="O-">O-</option><option value="O+">O+</option>
+              <option value="A-">A-</option><option value="A+">A+</option>
+              <option value="B-">B-</option><option value="B+">B+</option>
+              <option value="AB-">AB-</option><option value="AB+">AB+</option>
+            </select>
+            <input id="sync-units" type="number" min="0" value="4" aria-label="Units" />
+            <button class="btn btn-primary" type="submit">Sync Live Units</button>
+          </form>
+          <div id="top-consumers-list" class="stack-list" style="max-height:175px"></div>
+        </article>
+      </div>
+
+      <article class="panel" style="margin-bottom:16px">
+        <div class="panel-header">
+          <div>
+            <h2>Live Blood Group &times; Component Availability Matrix</h2>
+            <p class="panel-sub">Global real-time stock, daily burn rate, network days cover, and 7-day expiring units</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Blood Group</th>
+                <th>Packed RBCs</th>
+                <th>Platelets (PLT)</th>
+                <th>Fresh Frozen Plasma (FFP)</th>
+                <th>Cryoprecipitate (CRYO)</th>
+              </tr>
+            </thead>
+            <tbody id="availability-matrix-tbody"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Real-Time Stream Inventory Monitor</h2>
+            <p class="panel-sub">Inspect current stock, predictive 7-day risk, and replenishment need per facility</p>
+          </div>
+          <div class="toolbar" style="margin:0">
+            <select id="mon-bt" aria-label="Monitor blood group"><option value="ALL">All Groups</option><option value="O-">O-</option><option value="O+">O+</option><option value="A-">A-</option><option value="A+">A+</option><option value="B-">B-</option><option value="B+">B+</option><option value="AB-">AB-</option><option value="AB+">AB+</option></select>
+            <select id="mon-comp" aria-label="Monitor component"><option value="ALL">All Components</option><option value="RBC">RBC</option><option value="PLT">PLT</option><option value="FFP">FFP</option><option value="CRYO">CRYO</option></select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Facility</th><th>City</th><th>Group / Comp</th><th>Current Units</th><th>Daily Burn</th><th>Days Cover</th><th>7d Shortage Prob</th><th>Status</th></tr>
+            </thead>
+            <tbody id="monitor-tbody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <!-- Tab 1c: Caretaker Connect & WHO-Verified Ecosystem -->
+    <section id="tab-caretaker" class="tab-panel" hidden>
+      <div class="two-col" style="margin-bottom:16px">
+        <article class="panel">
+          <h2>Patient Caretaker / Guardian &rarr; Specialist Doctor Bridge</h2>
+          <p class="panel-sub">Connects family caretakers or guardians directly to WHO-verified blood-group &amp; transfusion specialists.</p>
+          <form id="caretaker-form" class="stack-form">
+            <div class="form-row">
+              <label>Caretaker / Guardian Name <input id="care-name" type="text" required placeholder="e.g. Sunita Verma" /></label>
+              <label>Relation to Patient <input id="care-relation" type="text" value="Parent / Guardian" /></label>
+            </div>
+            <div class="form-row">
+              <label>Patient Blood Group
+                <select id="care-bt">
+                  <option value="O-">O-</option><option value="O+">O+</option>
+                  <option value="A-">A-</option><option value="A+">A+</option>
+                  <option value="B-">B-</option><option value="B+">B+</option>
+                  <option value="AB-">AB-</option><option value="AB+">AB+</option>
+                </select>
+              </label>
+              <label>Component Needed
+                <select id="care-comp">
+                  <option value="RBC">Packed RBCs</option>
+                  <option value="PLT">Platelets</option>
+                  <option value="FFP">Fresh Frozen Plasma</option>
+                  <option value="CRYO">Cryoprecipitate</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-row">
+              <label>City / Hospital Location <input id="care-city" type="text" required placeholder="e.g. New Delhi, London, Nairobi" /></label>
+              <label>Urgency
+                <select id="care-urgency">
+                  <option value="CRITICAL">Critical / Emergency</option>
+                  <option value="URGENT" selected>Urgent (24-48h)</option>
+                  <option value="PLANNED">Planned Surgery / Consult</option>
+                </select>
+              </label>
+            </div>
+            <label>Clinical Context / Notes <input id="care-notes" type="text" placeholder="e.g. Dengue platelet drop, rare antibody, pediatric surgery..." /></label>
+            <button class="btn btn-accent" type="submit">Connect to Top Matching Specialist Doctor</button>
+            <div id="caretaker-status" class="form-status" role="status" aria-live="polite"></div>
+          </form>
+        </article>
+
+        <article class="panel">
+          <h2>Active Caretaker &harr; Specialist Doctor Consultations</h2>
+          <p class="panel-sub">Verified clinical bridges logged with WHO-certified blood specialists</p>
+          <div id="caretaker-requests-list" class="stack-list" style="max-height:360px"></div>
+        </article>
+      </div>
+
+      <div class="toolbar">
+        <input id="eco-search" type="search" placeholder="Search doctors, medical colleges, drug manufacturers, WHO experts..." aria-label="Search medical ecosystem" />
+        <select id="eco-region" aria-label="Filter ecosystem by region">
+          <option value="ALL">All Regions</option>
+          <option value="North America">North America</option>
+          <option value="Europe">Europe</option>
+          <option value="South Asia">South Asia</option>
+          <option value="East Asia">East Asia</option>
+          <option value="Sub-Saharan Africa">Sub-Saharan Africa</option>
+          <option value="Latin America">Latin America</option>
+          <option value="MENA">MENA</option>
+          <option value="Oceania">Oceania</option>
+        </select>
+      </div>
+
+      <h3 class="section-title">WHO-Verified Specialist Blood-Group Doctors (Experience, Success Rate &amp; Mental Strength)</h3>
+      <div id="doctors-grid" class="cards-grid" style="margin-bottom:18px"></div>
+
+      <h3 class="section-title">WHO-Verified Medical Colleges &amp; Teaching Blood Centers</h3>
+      <div id="colleges-grid" class="cards-grid" style="margin-bottom:18px"></div>
+
+      <h3 class="section-title">WHO-Verified Drug &amp; Plasma Biologics Manufacturers</h3>
+      <div id="mfgs-grid" class="cards-grid" style="margin-bottom:18px"></div>
+
+      <h3 class="section-title">WHO-Verified Global Medical Experts &amp; Hemovigilance Advisors</h3>
+      <div id="experts-grid" class="cards-grid"></div>
+    </section>
+
+    <!-- Tab 2: Redistribution Transfers -->
+    <section id="tab-transfers" class="tab-panel" hidden>
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>AI-Matched Cold-Chain Redistribution Proposals</h2>
+            <p class="panel-sub">ABO/Rh compatibility verified • Shelf life &gt; transit time enforced • Clinical sign-off gates respected</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Status</th>
+                <th>Component &amp; Match</th>
+                <th>From (Surplus Hub)</th>
+                <th>To (At-Risk Hospital)</th>
+                <th>Units</th>
+                <th>Mode &amp; ETA</th>
+                <th>Clinical Sign-Off</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="transfers-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 3: Directory -->
+    <section id="tab-directory" class="tab-panel" hidden>
+      <div class="toolbar">
+        <input id="dir-search" type="search" placeholder="Search hospitals or blood banks globally..." aria-label="Search facilities" />
+        <select id="dir-region" aria-label="Filter by region">
+          <option value="ALL">All Regions</option>
+        </select>
+      </div>
+      <div id="directory-grid" class="cards-grid"></div>
+    </section>
+
+    <!-- Tab 4: What-If & FHIR/ISBT -->
+    <section id="tab-simulator" class="tab-panel" hidden>
+      <div class="two-col">
+        <article class="panel">
+          <h2>What-If Surge &amp; Crisis Preparedness Simulator</h2>
+          <p class="panel-sub">Stress-test hospital reserves against surgical surges, disease outbreaks, or donor drops.</p>
+          <form id="sim-form" class="stack-form">
+            <label>Target Region
+              <select id="sim-region">
+                <option value="">All Global Regions</option>
+                <option value="North America">North America</option>
+                <option value="Europe">Europe</option>
+                <option value="South Asia">South Asia</option>
+                <option value="East Asia">East Asia</option>
+                <option value="Sub-Saharan Africa">Sub-Saharan Africa</option>
+                <option value="Latin America">Latin America</option>
+                <option value="MENA">MENA</option>
+                <option value="Oceania">Oceania</option>
+              </select>
+            </label>
+            <label>Scheduled Surgery Multiplier: <strong id="val-surg">1.0x</strong>
+              <input id="sim-surg" type="range" min="0.8" max="2.0" step="0.1" value="1.0" />
+            </label>
+            <label>Trauma / EMS Surge Multiplier: <strong id="val-trauma">1.0x</strong>
+              <input id="sim-trauma" type="range" min="0.8" max="2.2" step="0.1" value="1.0" />
+            </label>
+            <label>Outbreak Boost (e.g., Dengue Platelets): <strong id="val-outbreak">+0.0</strong>
+              <input id="sim-outbreak" type="range" min="0.0" max="0.8" step="0.1" value="0.0" />
+            </label>
+            <label>Donor Turnout Multiplier: <strong id="val-donor">1.0x</strong>
+              <input id="sim-donor" type="range" min="0.4" max="1.6" step="0.1" value="1.0" />
+            </label>
+            <div class="form-row">
+              <button class="btn btn-primary" type="submit">Run Predictive Stress Test</button>
+              <button id="btn-sim-reset" class="btn btn-ghost" type="button">Reset Baseline</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="panel">
+          <h2>Interoperability Lab (ISBT 128 &amp; HL7 FHIR R4)</h2>
+          <p class="panel-sub">Verify standard blood bag barcodes and test PHI-stripped FHIR bundle ingestion.</p>
+          <form id="isbt-form" class="stack-form">
+            <label>ISBT 128 Concatenated Barcode
+              <input id="isbt-input" type="text" value="=USNYC26001234=%9500=<E0306" />
+            </label>
+            <button class="btn btn-primary" type="submit">Decode ISBT 128 Unit</button>
+          </form>
+          <pre id="isbt-output" class="code-box">Click Decode to inspect ISBT 128 fields.</pre>
+
+          <hr />
+          <button id="btn-test-fhir" class="btn btn-accent" type="button">Send Sample HL7 FHIR R4 Bundle (AIIMS O- Sync)</button>
+          <pre id="fhir-output" class="code-box">FHIR ingestion strips patient identifiers automatically.</pre>
+        </article>
+      </div>
+    </section>
+
+    <!-- Tab 5: Federated Privacy & Audit -->
+    <section id="tab-privacy" class="tab-panel" hidden>
+      <div class="two-col">
+        <article class="panel">
+          <h2>Federated Differential Privacy Telemetry (Epsilon = 1.5)</h2>
+          <p class="panel-sub">Regional demand signals aggregated with calibrated Laplace noise so individual patient events remain private.</p>
+          <div id="privacy-list" class="stack-list"></div>
+        </article>
+        <article class="panel">
+          <h2>Immutable Clinical &amp; Logistics Audit Trail</h2>
+          <div id="audit-list" class="stack-list"></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Connect Any Hospital / Blood Bank -->
+  <dialog id="connect-modal" class="modal" aria-labelledby="connect-modal-title">
+    <form id="connect-form" class="modal-card">
+      <div class="modal-head">
+        <h2 id="connect-modal-title">Connect a Hospital or Blood Bank to HemoNet</h2>
+        <button id="btn-close-connect" class="btn btn-ghost btn-sm" type="button" aria-label="Close modal">✕</button>
+      </div>
+      <p class="panel-sub">Join the global network in seconds. Your facility immediately receives 14-day shortage predictions and compatibility routing.</p>
+      <div class="form-row">
+        <label>Facility Name <input id="conn-name" type="text" required placeholder="e.g. St. Jude Regional Hospital" /></label>
+        <label>Type
+          <select id="conn-kind">
+            <option value="hospital">Hospital</option>
+            <option value="blood_bank">Blood Bank</option>
+            <option value="regional_hub">Regional Hub</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-row">
+        <label>City <input id="conn-city" type="text" required placeholder="e.g. Manila" /></label>
+        <label>Country <input id="conn-country" type="text" required placeholder="e.g. Philippines" /></label>
+      </div>
+      <div class="form-row">
+        <label>Macro-Region
+          <select id="conn-region">
+            <option value="North America">North America</option>
+            <option value="Europe">Europe</option>
+            <option value="South Asia">South Asia</option>
+            <option value="East Asia">East Asia</option>
+            <option value="Sub-Saharan Africa">Sub-Saharan Africa</option>
+            <option value="Latin America">Latin America</option>
+            <option value="MENA">MENA</option>
+            <option value="Oceania">Oceania</option>
+          </select>
+        </label>
+        <label>Capacity (Units) <input id="conn-cap" type="number" value="600" min="50" /></label>
+      </div>
+      <div class="form-row">
+        <label>Latitude <input id="conn-lat" type="number" step="0.01" value="14.59" /></label>
+        <label>Longitude <input id="conn-lon" type="number" step="0.01" value="120.98" /></label>
+      </div>
+      <div class="form-row">
+        <label>Current O- RBC Units (optional test) <input id="conn-omin" type="number" value="3" min="0" /></label>
+        <label>ISBT Facility Code <input id="conn-isbt" type="text" value="PHMNL" maxlength="5" /></label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" type="submit">Connect Facility &amp; Run AI Forecast</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>
